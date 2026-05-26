@@ -1,8 +1,11 @@
+const connectMongoDB = require("./mongoConnection");
+const Vehiculo = require("./Vehiculo");
 const express = require('express');
 const pool = require('./db');
 const app = express();
 
 app.use(express.json());
+connectMongoDB();
 
 app.get('/', (req, res) => {
   res.send('API funcionando.');
@@ -136,4 +139,46 @@ pool.connect()
   
 app.listen(3000, () => {
   console.log('Servidor corriendo en http://localhost:3000');
+});
+
+app.get("/api/getVehiculos", async (req, res) => {
+  try {
+    const vehiculos = await Vehiculo.find();
+    res.status(200).json({
+      message: "Vehículos consultados correctamente",
+      data: vehiculos
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error al consultar vehículos",
+      error: error.message
+    });
+  }
+});
+
+app.post("/api/createVehiculo", async (req, res) => {
+  try {
+    const { marca, modelo, anio, color } = req.body;
+
+    if (!marca || !modelo || !anio || !color) {
+      return res.status(400).json({ message: "Todos los campos son obligatorios" });
+    }
+
+    if (isNaN(anio)) {
+      return res.status(400).json({ message: "El año debe ser numérico" });
+    }
+
+    const nuevoVehiculo = new Vehiculo({ marca, modelo, anio, color });
+    await nuevoVehiculo.save();
+
+    res.status(201).json({
+      message: "Vehículo creado correctamente",
+      data: nuevoVehiculo
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error al crear vehículo",
+      error: error.message
+    });
+  }
 });
